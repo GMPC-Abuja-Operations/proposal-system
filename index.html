@@ -189,26 +189,26 @@
         }
         .progress-content {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
             text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
         .progress-bar {
             background: #ddd;
-            height: 8px;
-            border-radius: 4px;
-            margin: 10px 0;
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
         }
         .progress-fill {
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
             height: 100%;
             width: 0;
-            border-radius: 4px;
             transition: width 0.3s;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>  <!-- For compression -->
 </head>
 <body>
     <div class="container">
@@ -261,7 +261,7 @@
 
                     <label>Attach Files (optional, max ~40MB total):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload files">
-                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" hidden>
+                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
                         <p>📁 Click or drag files here</p>
                         <ul id="new-file-list" class="file-list"></ul>
                     </div>
@@ -294,7 +294,7 @@
 
                     <label>Files / Notes (optional):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload additional files">
-                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" hidden>
+                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
                         <p>📁 Click or drag files here</p>
                         <ul id="update-file-list" class="file-list"></ul>
                     </div>
@@ -338,12 +338,14 @@
             <div class="progress-bar">
                 <div id="progress-fill" class="progress-fill"></div>
             </div>
+            <p id="progress-detail" style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;"></p>
         </div>
     </div>
     
     <script>
         // === CONFIGURATION ===
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec'; // ⚠️ REPLACE WITH YOUR ACTUAL DEPLOYED URL
+
         // === INITIALIZATION ===
         document.addEventListener('DOMContentLoaded', () => {
             // Set minimum dates
@@ -377,7 +379,7 @@
                 
                 // Click to open file dialog
                 area.addEventListener('click', (e) => {
-                    if (e.target.tagName !== 'INPUT') {
+                    if (e.target.tagName !== 'INPUT' && e.target.className !== 'remove') {
                         input.click();
                     }
                 });
@@ -423,8 +425,9 @@
             });
             
             // Validate total size (50MB GAS limit, we use 40MB for safety)
-            if (totalSize > 40 * 1024 * 1024) {
-                alert(`Total files exceed 40MB limit. Current: ${formatFileSize(totalSize)}`);
+            const maxSize = 40 * 1024 * 1024;
+            if (totalSize > maxSize) {
+                alert(`Total files exceed 40MB limit. Current: ${formatFileSize(totalSize)} / ${formatFileSize(maxSize)}`);
                 input.value = '';
                 list.innerHTML = '';
                 return false;
@@ -455,20 +458,29 @@
         }
 
         // === CONDITIONAL FIELDS ===
-        document.getElementById('status').addEventListener('change', e => {
-            const status = e.target.value;
+        document.getElementById('status').addEventListener('change', function() {
+            const status = this.value;
             const fields = {
                 won: document.getElementById('won-fields'),
                 lost: document.getElementById('lost-fields'),
                 followup: document.getElementById('followup-fields')
             };
             
-            // Hide all
-            Object.values(fields).forEach(f => f.classList.remove('visible'));
+            // Hide all conditional fields
+            Object.values(fields).forEach(field => field.classList.remove('visible'));
             
-            // Show relevant field
+            // Remove required from all conditional inputs
+            document.querySelectorAll('.conditional input, .conditional select').forEach(input => {
+                input.required = false;
+            });
+            
+            // Show and set required for the relevant field
             if (status in fields) {
-                fields[status].classList.add('visible');
+                const field = fields[status];
+                field.classList.add('visible');
+                field.querySelectorAll('input, select').forEach(input => {
+                    input.required = true;
+                });
             }
         });
 
@@ -617,7 +629,8 @@
         async function loadTasks() {
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getTasks`, {
-                    mode: 'cors'
+                    mode: 'cors',
+                    cache: 'no-cache'
                 });
                 
                 if (!response.ok) {
