@@ -102,9 +102,10 @@
             padding: 20px;
             text-align: center;
             cursor: pointer;
-            transition: border 0.3s;
+            transition: all 0.3s;
+            position: relative;
         }
-        .file-area:hover, .file-area:focus-within {
+        .file-area:hover, .file-area.dragover {
             border-color: var(--primary);
             background: rgba(0,123,255,0.05);
         }
@@ -117,6 +118,17 @@
         }
         .file-list li {
             margin: 4px 0;
+            padding: 6px 10px;
+            background: var(--light);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-list li .remove {
+            color: var(--danger);
+            cursor: pointer;
+            font-weight: bold;
         }
         button {
             padding: 14px;
@@ -138,6 +150,11 @@
             text-align: center;
             font-weight: 600;
             font-size: 1.1rem;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -211,8 +228,8 @@
 
                     <label>Attach Files (optional, max ~40MB total):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload files">
-                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" onchange="handleFileChange(this, 'new-file-list')" hidden>
-                        <p>Click or drag files here</p>
+                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" hidden>
+                        <p>📁 Click or drag files here</p>
                         <ul id="new-file-list" class="file-list"></ul>
                     </div>
 
@@ -244,8 +261,8 @@
 
                     <label>Files / Notes (optional):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload additional files">
-                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" onchange="handleFileChange(this, 'update-file-list')" hidden>
-                        <p>Click or drag files here</p>
+                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" hidden>
+                        <p>📁 Click or drag files here</p>
                         <ul id="update-file-list" class="file-list"></ul>
                     </div>
                     <textarea name="notes" rows="3" placeholder="Any additional notes or comments..."></textarea>
@@ -283,35 +300,119 @@
     </div>
 
     <script>
+        // === CONFIGURATION ===
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec';
+        // === INITIALIZATION ===
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set minimum dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dueDate').min = today;
+            document.getElementById('nextFollowupDate').min = today;
+            
+            // Initialize file areas
+            initFileAreas();
+            
+            // Load tasks for update form
+            loadTasks();
+        });
 
-        // Tab switching
+        // === TAB MANAGEMENT ===
         function showTab(tabName) {
+            // Hide all tabs
             document.querySelectorAll('.tab-panel').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
             document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
         }
 
-        // File change handler (preview list)
-        function handleFileChange(input, listId) {
-            const list = document.getElementById(listId);
-            list.innerHTML = '';
-            let total = 0;
-            Array.from(input.files).forEach(file => {
-                total += file.size;
-                const li = document.createElement('li');
-                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                list.appendChild(li);
+        // === FILE HANDLING ===
+        function initFileAreas() {
+            document.querySelectorAll('.file-area').forEach(area => {
+                const input = area.querySelector('input[type="file"]');
+                const listId = area.querySelector('.file-list').id;
+                
+                // Click to open file dialog
+                area.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        input.click();
+                    }
+                });
+                
+                // Drag and drop
+                area.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    area.classList.add('dragover');
+                });
+                
+                area.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                });
+                
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    area.classList.remove('dragover');
+                    input.files = e.dataTransfer.files;
+                    updateFileList(input, listId);
+                });
+                
+                // Handle file selection
+                input.addEventListener('change', () => {
+                    updateFileList(input, listId);
+                });
             });
-            if (total > 50 * 1024 * 1024) {
-                alert('Total files exceed ~50MB limit. Please reduce selection.');
-                input.value = '';
-                list.innerHTML = '';
-            }
         }
 
-        // Dynamic conditional fields
+        function updateFileList(input, listId) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            let totalSize = 0;
+            
+            Array.from(input.files).forEach((file, index) => {
+                totalSize += file.size;
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${file.name} (${formatFileSize(file.size)})</span>
+                    <span class="remove" onclick="removeFile(${index}, '${input.id}', '${listId}')">✕</span>
+                `;
+                list.appendChild(li);
+            });
+            
+            // Validate total size (50MB GAS limit, we use 40MB for safety)
+            if (totalSize > 40 * 1024 * 1024) {
+                alert(`Total files exceed 40MB limit. Current: ${formatFileSize(totalSize)}`);
+                input.value = '';
+                list.innerHTML = '';
+                return false;
+            }
+            
+            return true;
+        }
+
+        function removeFile(index, inputId, listId) {
+            const input = document.getElementById(inputId);
+            const files = Array.from(input.files);
+            files.splice(index, 1);
+            
+            // Create new FileList
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+            
+            updateFileList(input, listId);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // === CONDITIONAL FIELDS ===
         document.getElementById('status').addEventListener('change', e => {
             const status = e.target.value;
             const fields = {
@@ -319,13 +420,17 @@
                 lost: document.getElementById('lost-fields'),
                 followup: document.getElementById('followup-fields')
             };
+            
+            // Hide all
             Object.values(fields).forEach(f => f.classList.remove('visible'));
+            
+            // Show relevant field
             if (status in fields) {
                 fields[status].classList.add('visible');
             }
         });
 
-        // Form submit with base64 files
+        // === FORM SUBMISSION ===
         async function handleSubmit(formId, e) {
             e.preventDefault();
             const form = document.getElementById(formId);
@@ -334,76 +439,123 @@
             const successBanner = document.getElementById('success-banner');
             const errorBanner = document.getElementById('error-banner');
 
+            // Reset UI
             successBanner.style.display = 'none';
             errorBanner.style.display = 'none';
             loading.style.display = 'block';
             submitBtn.disabled = true;
 
             try {
+                // Prepare form data
                 const formData = new FormData(form);
+                
+                // Convert files to base64
                 const fileInput = form.querySelector('input[type="file"]');
                 const files = fileInput?.files || [];
                 const attachments = [];
+                
                 for (const file of files) {
-                    const base64 = await new Promise(resolve => {
+                    const base64 = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
                         reader.readAsDataURL(file);
                     });
-                    attachments.push({ name: file.name, type: file.type, base64 });
+                    
+                    attachments.push({ 
+                        name: file.name, 
+                        type: file.type, 
+                        base64: base64 
+                    });
                 }
-                if (attachments.length) {
+                
+                // Add base64 files to form data
+                if (attachments.length > 0) {
                     formData.append('attachmentsJson', JSON.stringify(attachments));
                 }
 
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+                // Submit to Apps Script
+                const response = await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    body: formData,
+                    mode: 'cors'
+                });
+                
                 const result = await response.json();
 
                 if (result.status === 'success') {
+                    // Success
                     successBanner.textContent = result.message || '✓ Success!';
                     successBanner.style.display = 'block';
+                    
+                    // Reset form
                     form.reset();
-                    document.querySelectorAll('.file-list').forEach(l => l.innerHTML = '');
-                    setTimeout(() => successBanner.style.display = 'none', 6000);
+                    document.querySelectorAll('input[type="file"]').forEach(input => {
+                        input.value = '';
+                    });
+                    document.querySelectorAll('.file-list').forEach(list => {
+                        list.innerHTML = '';
+                    });
+                    
+                    // Reload tasks if update form was submitted
+                    if (formId === 'update-form') {
+                        loadTasks();
+                    }
+                    
+                    // Hide success banner after 6 seconds
+                    setTimeout(() => {
+                        successBanner.style.display = 'none';
+                    }, 6000);
+                    
                 } else {
-                    throw new Error(result.message || 'Failed');
+                    throw new Error(result.message || 'Submission failed');
                 }
+                
             } catch (error) {
+                // Error handling
                 errorBanner.textContent = `✗ ${error.message}`;
                 errorBanner.style.display = 'block';
-                console.error(error);
+                console.error('Submission error:', error);
+                
             } finally {
+                // Cleanup
                 loading.style.display = 'none';
                 submitBtn.disabled = false;
             }
         }
 
-        // Attach listeners
-        document.getElementById('new-form').addEventListener('submit', e => handleSubmit('new-form', e));
-        document.getElementById('update-form').addEventListener('submit', e => handleSubmit('update-form', e));
-
-        // Load tasks
+        // === TASK LOADING ===
         async function loadTasks() {
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=getTasks`);
-                if (!response.ok) throw new Error('Network error');
+                const response = await fetch(`${SCRIPT_URL}?action=getTasks`, {
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const tasks = await response.json();
                 const select = document.querySelector('select[name="taskId"]');
                 select.innerHTML = '<option value="">Select Task...</option>';
+                
                 tasks.forEach(task => {
-                    const opt = document.createElement('option');
-                    opt.value = task.id;
-                    opt.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'N/A'})`;
-                    select.appendChild(opt);
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'N/A'})`;
+                    select.appendChild(option);
                 });
-            } catch (err) {
-                console.error(err);
-                document.querySelector('select[name="taskId"]').innerHTML = '<option value="">Error loading – contact BOM</option>';
+                
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+                const select = document.querySelector('select[name="taskId"]');
+                select.innerHTML = '<option value="">Error loading tasks. Please try again later.</option>';
             }
         }
 
-        // Init
-        document.addEventListener('DOMContentLoaded', loadTasks);
+        // === EVENT LISTENERS ===
+        document.getElementById('new-form').addEventListener('submit', e => handleSubmit('new-form', e));
+        document.getElementById('update-form').addEventListener('submit', e => handleSubmit('update-form', e));
     </script>
 </body>
 </html>
