@@ -5,258 +5,405 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proposal Management System</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .tab { display: none; }
-        .active { display: block; }
-        .banner { padding: 12px; margin: 12px 0; border-radius: 4px; text-align: center; font-weight: bold; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-        .loading { display: none; text-align: center; font-size: 1.2em; color: #666; }
-        label { display: block; margin: 12px 0 6px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 12px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
-        button:hover { background: #0056b3; }
+        :root {
+            --primary: #007bff;
+            --primary-dark: #0056b3;
+            --success: #28a745;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --border: #dee2e6;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 { margin: 0; font-size: 2rem; }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 16px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--gray);
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            font-weight: 600;
+        }
+        .tab-panel {
+            display: none;
+            padding: 30px;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+        form {
+            display: grid;
+            gap: 20px;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+        .conditional {
+            transition: opacity 0.3s ease, max-height 0.3s ease;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+        }
+        .conditional.visible {
+            max-height: 300px;
+            opacity: 1;
+        }
+        .file-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border 0.3s;
+        }
+        .file-area:hover, .file-area:focus-within {
+            border-color: var(--primary);
+            background: rgba(0,123,255,0.05);
+        }
+        .file-list {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--gray);
+            list-style: none;
+            padding: 0;
+        }
+        .file-list li {
+            margin: 4px 0;
+        }
+        button {
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: var(--primary-dark); }
         button:disabled { background: #ccc; cursor: not-allowed; }
+        .banner {
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        .loading::after {
+            content: ' ⏳';
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 600px) {
+            .tab-content { padding: 20px; }
+            .tabs { flex-direction: column; }
+            .tab-btn { padding: 14px; font-size: 1rem; }
+        }
     </style>
 </head>
 <body>
-    <h1>📋 Proposal Management System</h1>
-    
-    <!-- Tab Navigation -->
-    <button onclick="showTab('new')">New Opportunity</button>
-    <button onclick="showTab('update')">Update Task</button>
-    
-    <!-- New Opportunity Tab -->
-    <div id="new-tab" class="tab active">
-        <h2>New Opportunity (Partners)</h2>
-        <form id="new-form">
-            <input type="hidden" name="formType" value="newOpportunity">
-            
-            <label>Client Name:*</label>
-            <input type="text" name="clientName" required placeholder="e.g., ABC Corp">
-            
-            <label>Opportunity Source:*</label>
-            <select name="source" required>
-                <option value="">Select...</option>
-                <option value="existing">Existing Client</option>
-                <option value="referral">Referral</option>
-                <option value="cold">Cold Outreach</option>
-                <option value="partner">Partner Network</option>
-                <option value="other">Other</option>
-            </select>
-            
-            <label>Description:*</label>
-            <textarea name="description" required rows="4" placeholder="Brief overview of the opportunity..."></textarea>
-            
-            <label>₦ Estimate:*</label>
-            <input type="number" name="nairaEstimate" min="0" step="1000" required placeholder="e.g., 5000000">
-            
-            <label>Assigned Staff:*</label>
-            <select name="assignedStaff" required>
-                <option value="">Select...</option>
-                <option value="staff1">Staff Member 1</option>
-                <option value="staff2">Staff Member 2</option>
-                <option value="staff3">Staff Member 3</option>
-                <option value="staff4">Staff Member 4</option>
-                <option value="staff5">Staff Member 5</option>
-            </select>
-            
-            <label>Due Date:*</label>
-            <input type="date" name="dueDate" required>
-            
-            <label>Attach Files (optional, max 40MB each):</label>
-            <input type="file" name="attachments" multiple 
-                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                   onchange="validateFileSize(this)">
-            
-            <button type="submit">Submit Opportunity</button>
-        </form>
+    <div class="container">
+        <header>
+            <h1>📋 Proposal Management System</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('new')">New Opportunity (Partners)</button>
+            <button class="tab-btn" onclick="showTab('update')">Update Task (Associates)</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- New Opportunity Form -->
+            <div id="new-tab" class="tab-panel active">
+                <form id="new-form">
+                    <input type="hidden" name="formType" value="newOpportunity">
+
+                    <label for="clientName">Client Name:*</label>
+                    <input type="text" id="clientName" name="clientName" required placeholder="e.g., ABC Corp">
+
+                    <label for="source">Opportunity Source:*</label>
+                    <select id="source" name="source" required>
+                        <option value="">Select...</option>
+                        <option value="existing">Existing Client</option>
+                        <option value="referral">Referral</option>
+                        <option value="cold">Cold Outreach</option>
+                        <option value="partner">Partner Network</option>
+                        <option value="other">Other</option>
+                    </select>
+
+                    <label for="description">Description:*</label>
+                    <textarea id="description" name="description" required rows="4" placeholder="Brief overview of the opportunity..."></textarea>
+
+                    <label for="nairaEstimate">₦ Estimate:*</label>
+                    <input type="number" id="nairaEstimate" name="nairaEstimate" min="0" step="1000" required placeholder="e.g., 5000000">
+
+                    <label for="assignedStaff">Assigned Staff:*</label>
+                    <select id="assignedStaff" name="assignedStaff" required>
+                        <option value="">Select...</option>
+                        <option value="staff1">Staff Member 1</option>
+                        <option value="staff2">Staff Member 2</option>
+                        <option value="staff3">Staff Member 3</option>
+                        <option value="staff4">Staff Member 4</option>
+                        <option value="staff5">Staff Member 5</option>
+                    </select>
+
+                    <label for="dueDate">Due Date:*</label>
+                    <input type="date" id="dueDate" name="dueDate" required>
+
+                    <label>Attach Files (optional, max ~40MB total):</label>
+                    <div class="file-area" tabindex="0" role="button" aria-label="Upload files">
+                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" onchange="handleFileChange(this, 'new-file-list')" hidden>
+                        <p>Click or drag files here</p>
+                        <ul id="new-file-list" class="file-list"></ul>
+                    </div>
+
+                    <button type="submit">Submit Opportunity</button>
+                </form>
+            </div>
+
+            <!-- Update Task Form -->
+            <div id="update-tab" class="tab-panel">
+                <form id="update-form">
+                    <input type="hidden" name="formType" value="updateTask">
+
+                    <label for="taskId">Select Task:*</label>
+                    <select id="taskId" name="taskId" required>
+                        <option value="">Loading tasks...</option>
+                    </select>
+
+                    <label for="status">Status:*</label>
+                    <select id="status" name="status" required>
+                        <option value="">Select...</option>
+                        <option value="drafting">Drafting</option>
+                        <option value="review">Review</option>
+                        <option value="sent">Sent</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="won">Won</option>
+                        <option value="lost">Lost</option>
+                        <option value="noresponse">No Response</option>
+                    </select>
+
+                    <label>Files / Notes (optional):</label>
+                    <div class="file-area" tabindex="0" role="button" aria-label="Upload additional files">
+                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" onchange="handleFileChange(this, 'update-file-list')" hidden>
+                        <p>Click or drag files here</p>
+                        <ul id="update-file-list" class="file-list"></ul>
+                    </div>
+                    <textarea name="notes" rows="3" placeholder="Any additional notes or comments..."></textarea>
+
+                    <div id="won-fields" class="conditional">
+                        <label for="actualValue">₦ Actual Value (if Won):*</label>
+                        <input type="number" id="actualValue" name="actualValue" min="0" step="1000">
+                    </div>
+
+                    <div id="lost-fields" class="conditional">
+                        <label for="lossReason">Loss Reason:*</label>
+                        <select id="lossReason" name="lossReason">
+                            <option value="">Select...</option>
+                            <option value="price">Price</option>
+                            <option value="competitor">Competitor</option>
+                            <option value="timing">Timing</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div id="followup-fields" class="conditional">
+                        <label for="nextFollowupDate">Next Follow-up Date:*</label>
+                        <input type="date" id="nextFollowupDate" name="nextFollowupDate">
+                    </div>
+
+                    <button type="submit">Update Task</button>
+                </form>
+            </div>
+
+            <!-- Feedback -->
+            <div id="success-banner" class="banner success" style="display:none;"></div>
+            <div id="error-banner" class="banner error" style="display:none;"></div>
+            <div id="loading" class="loading">Submitting...</div>
+        </div>
     </div>
-    
-    <!-- Update Task Tab -->
-    <div id="update-tab" class="tab">
-        <h2>Update Task (Associates)</h2>
-        <form id="update-form">
-            <input type="hidden" name="formType" value="updateTask">
-            
-            <label>Select Task:*</label>
-            <select name="taskId" required>
-                <option value="">Loading tasks...</option>
-            </select>
-            
-            <label>Status:*</label>
-            <select name="status" required>
-                <option value="">Select...</option>
-                <option value="drafting">Drafting</option>
-                <option value="review">Review</option>
-                <option value="sent">Sent</option>
-                <option value="followup">Follow-up</option>
-                <option value="won">Won</option>
-                <option value="lost">Lost</option>
-                <option value="noresponse">No Response</option>
-            </select>
-            
-            <label>Files / Notes (optional):</label>
-            <input type="file" name="updateFiles" multiple 
-                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                   onchange="validateFileSize(this)">
-            <textarea name="notes" rows="3" placeholder="Any additional notes or comments..."></textarea>
-            
-            <!-- Conditional: Won -->
-            <div id="won-fields" style="display:none;">
-                <label>₦ Actual Value (if Won):*</label>
-                <input type="number" name="actualValue" min="0" step="1000">
-            </div>
-            
-            <!-- Conditional: Lost -->
-            <div id="lost-fields" style="display:none;">
-                <label>Loss Reason:*</label>
-                <select name="lossReason">
-                    <option value="">Select...</option>
-                    <option value="price">Price</option>
-                    <option value="competitor">Competitor</option>
-                    <option value="timing">Timing</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            
-            <!-- Conditional: Follow-up -->
-            <div id="followup-fields" style="display:none;">
-                <label>Next Follow-up Date:*</label>
-                <input type="date" name="nextFollowupDate">
-            </div>
-            
-            <button type="submit">Update Task</button>
-        </form>
-    </div>
-    
-    <!-- Banners & Loading -->
-    <div id="success-banner" class="banner success" style="display:none;"></div>
-    <div id="error-banner" class="banner error" style="display:none;"></div>
-    <div id="loading" class="loading">⏳ Submitting...</div>
-    
+
     <script>
-        // === CONFIG ===
-        const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';  // ← Replace this once with your deployed Web App URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec';
 
         // Tab switching
         function showTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
         }
 
-        // File size validation (40MB per file, ~50MB total for GAS safety)
-        function validateFileSize(input) {
-            const maxPerFile = 40 * 1024 * 1024;
+        // File change handler (preview list)
+        function handleFileChange(input, listId) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
             let total = 0;
-            for (let file of input.files) {
+            Array.from(input.files).forEach(file => {
                 total += file.size;
-                if (file.size > maxPerFile) {
-                    alert(`"${file.name}" exceeds 40MB. Compress or zip files.`);
-                    input.value = '';
-                    return;
-                }
-            }
+                const li = document.createElement('li');
+                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                list.appendChild(li);
+            });
             if (total > 50 * 1024 * 1024) {
-                alert('Total upload size exceeds safe limit (~50MB). Please reduce files.');
+                alert('Total files exceed ~50MB limit. Please reduce selection.');
                 input.value = '';
+                list.innerHTML = '';
             }
         }
 
-        // Dynamic conditional fields + required toggling
-        document.querySelector('select[name="status"]').addEventListener('change', e => {
+        // Dynamic conditional fields
+        document.getElementById('status').addEventListener('change', e => {
             const status = e.target.value;
-            
-            // Hide all and reset required
-            ['won-fields', 'lost-fields', 'followup-fields'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-            document.querySelector('input[name="actualValue"]').required = false;
-            document.querySelector('select[name="lossReason"]').required = false;
-            document.querySelector('input[name="nextFollowupDate"]').required = false;
-            
-            if (status === 'won') {
-                document.getElementById('won-fields').style.display = 'block';
-                document.querySelector('input[name="actualValue"]').required = true;
-            } else if (status === 'lost') {
-                document.getElementById('lost-fields').style.display = 'block';
-                document.querySelector('select[name="lossReason"]').required = true;
-            } else if (status === 'followup') {
-                document.getElementById('followup-fields').style.display = 'block';
-                document.querySelector('input[name="nextFollowupDate"]').required = true;
+            const fields = {
+                won: document.getElementById('won-fields'),
+                lost: document.getElementById('lost-fields'),
+                followup: document.getElementById('followup-fields')
+            };
+            Object.values(fields).forEach(f => f.classList.remove('visible'));
+            if (status in fields) {
+                fields[status].classList.add('visible');
             }
         });
 
-        // Form submission handler
-        async function handleSubmit(formId, formData) {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('success-banner').style.display = 'none';
-            document.getElementById('error-banner').style.display = 'none';
-            const submitBtn = document.querySelector(`#${formId} button[type="submit"]`);
+        // Form submit with base64 files
+        async function handleSubmit(formId, e) {
+            e.preventDefault();
+            const form = document.getElementById(formId);
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const loading = document.getElementById('loading');
+            const successBanner = document.getElementById('success-banner');
+            const errorBanner = document.getElementById('error-banner');
+
+            successBanner.style.display = 'none';
+            errorBanner.style.display = 'none';
+            loading.style.display = 'block';
             submitBtn.disabled = true;
 
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
+                const formData = new FormData(form);
+                const fileInput = form.querySelector('input[type="file"]');
+                const files = fileInput?.files || [];
+                const attachments = [];
+                for (const file of files) {
+                    const base64 = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(file);
+                    });
+                    attachments.push({ name: file.name, type: file.type, base64 });
+                }
+                if (attachments.length) {
+                    formData.append('attachmentsJson', JSON.stringify(attachments));
+                }
+
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    const action = formId === 'new-form' ? 'Opportunity created' : 'Task updated';
-                    const message = result.message || `✓ ${action} successfully!`;
-                    document.getElementById('success-banner').textContent = message;
-                    document.getElementById('success-banner').style.display = 'block';
-                    document.getElementById(formId).reset();
-                    setTimeout(() => document.getElementById('success-banner').style.display = 'none', 5000);
+                    successBanner.textContent = result.message || '✓ Success!';
+                    successBanner.style.display = 'block';
+                    form.reset();
+                    document.querySelectorAll('.file-list').forEach(l => l.innerHTML = '');
+                    setTimeout(() => successBanner.style.display = 'none', 6000);
                 } else {
-                    throw new Error(result.message || 'Submission failed');
+                    throw new Error(result.message || 'Failed');
                 }
             } catch (error) {
-                document.getElementById('error-banner').textContent = `✗ ${error.message}`;
-                document.getElementById('error-banner').style.display = 'block';
-                console.error('Submission error:', error);
+                errorBanner.textContent = `✗ ${error.message}`;
+                errorBanner.style.display = 'block';
+                console.error(error);
             } finally {
-                document.getElementById('loading').style.display = 'none';
+                loading.style.display = 'none';
                 submitBtn.disabled = false;
             }
         }
 
-        // Attach submit listeners
-        document.getElementById('new-form').addEventListener('submit', e => {
-            e.preventDefault();
-            handleSubmit('new-form', new FormData(e.target));
-        });
+        // Attach listeners
+        document.getElementById('new-form').addEventListener('submit', e => handleSubmit('new-form', e));
+        document.getElementById('update-form').addEventListener('submit', e => handleSubmit('update-form', e));
 
-        document.getElementById('update-form').addEventListener('submit', e => {
-            e.preventDefault();
-            handleSubmit('update-form', new FormData(e.target));
-        });
-
-        // Load tasks for Update dropdown (called on page load)
+        // Load tasks
         async function loadTasks() {
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getTasks`);
-                if (!response.ok) throw new Error('Failed to load tasks');
+                if (!response.ok) throw new Error('Network error');
                 const tasks = await response.json();
                 const select = document.querySelector('select[name="taskId"]');
                 select.innerHTML = '<option value="">Select Task...</option>';
                 tasks.forEach(task => {
-                    const option = document.createElement('option');
-                    option.value = task.id;
-                    option.textContent = `${task.clientName || 'Unknown'} - ${task.status || 'N/A'} (Due: ${task.dueDate || 'N/A'})`;
-                    select.appendChild(option);
+                    const opt = document.createElement('option');
+                    opt.value = task.id;
+                    opt.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'N/A'})`;
+                    select.appendChild(opt);
                 });
-            } catch (error) {
-                console.error('Task load error:', error);
-                document.querySelector('select[name="taskId"]').innerHTML = '<option value="">Error loading tasks – contact BOM</option>';
+            } catch (err) {
+                console.error(err);
+                document.querySelector('select[name="taskId"]').innerHTML = '<option value="">Error loading – contact BOM</option>';
             }
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadTasks();
-        });
+        // Init
+        document.addEventListener('DOMContentLoaded', loadTasks);
     </script>
 </body>
 </html>
