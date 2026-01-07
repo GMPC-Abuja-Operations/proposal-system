@@ -253,7 +253,7 @@
                         <option value="staff2">Ms. Joan Alaribe</option>
                         <option value="staff3">Mr. Emmanuel Agama</option>
                         <option value="staff4">Mr. Matthew Nnaji</option>
-                        <option value="staff5">Staff Member 5</option>
+                        <option value="staff5">Staff Member 5 (Not Active)</option>
                     </select>
 
                     <label for="dueDate">Due Date:*</label>
@@ -261,7 +261,7 @@
 
                     <label>Attach Files (optional, max ~40MB total):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload files">
-                        <input type="file" name="attachments" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
+                        <input type="file" id="newFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
                         <p>📁 Click or drag files here</p>
                         <ul id="new-file-list" class="file-list"></ul>
                     </div>
@@ -277,7 +277,7 @@
 
                     <label for="taskId">Select Task:*</label>
                     <select id="taskId" name="taskId" required>
-                        <option value="">Loading tasks...</option>
+                        <option value="" disabled selected>Loading tasks…</option>
                     </select>
 
                     <label for="status">Status:*</label>
@@ -294,7 +294,7 @@
 
                     <label>Files / Notes (optional):</label>
                     <div class="file-area" tabindex="0" role="button" aria-label="Upload additional files">
-                        <input type="file" name="updateFiles" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
+                        <input type="file" id="updateFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png" hidden>
                         <p>📁 Click or drag files here</p>
                         <ul id="update-file-list" class="file-list"></ul>
                     </div>
@@ -344,7 +344,7 @@
     
     <script>
         // === CONFIGURATION ===
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec'; // ⚠️ REPLACE WITH YOUR ACTUAL DEPLOYED URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyL353xc9j11AHCwgZ3Hfaeuo2uCuhBGPztv_Nmx2ghD2tGTcBqyi6YTDExB-wgTnRO/exec'; // Production Apps Script Web App URL – do not change unless redeploying
 
         // === INITIALIZATION ===
         document.addEventListener('DOMContentLoaded', () => {
