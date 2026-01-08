@@ -281,10 +281,12 @@
             return;
           }
         
+          // Use the CORRECT form ID from your prefill link
           const FORM_URL =
-            'https://docs.google.com/forms/d/e/1PdKvSU32F6ZZ6HDtbXpC65FJt7qPQm4HVBiMZrUGtrY/viewform?usp=pp_url' +
+            'https://docs.google.com/forms/d/e/1FAIpQLSe_106ge71JIgvIhzFLiOCf-WMkIB0qb4OboHz3pBWEke_PhA/viewform?usp=pp_url' +
             '&entry.1694540215=' + encodeURIComponent(taskId);
         
+          console.log('Opening form for task:', taskId);
           window.open(FORM_URL, '_blank');
         }
 
