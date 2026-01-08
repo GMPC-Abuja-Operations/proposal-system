@@ -249,7 +249,7 @@
 
     <script>
         // === CONFIGURATION ===
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySt3lktQs8CD1qcgRrm_xi9HVipcquRi6WJuufe_AQgR7ionPCBYsRGsrZj17cXjaR/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyu-gJkXTR9A3WSYHeh6wajs9W5L2zBjDctke8JA0grnGtFYSJJBUy0WRZNMBzKvMZq/exec';
 
         // === INITIALIZATION ===
         document.addEventListener('DOMContentLoaded', () => {
@@ -379,34 +379,55 @@
         }
 
         // === TASK LOADING ===
-        async function loadTasks() {
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getTasks`, {
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const tasks = await response.json();
-                const select = document.querySelector('select[name="taskId"]');
-                select.innerHTML = '<option value="">Select Task...</option>';
-
-                tasks.forEach(task => {
-                    const option = document.createElement('option');
-                    option.value = task.id;
-                    option.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'N/A'})`;
-                    select.appendChild(option);
-                });
-
-            } catch (error) {
-                console.error('Failed to load tasks:', error);
-                const select = document.querySelector('select[name="taskId"]');
-                select.innerHTML = '<option value="">Error loading tasks. Please try again later.</option>';
-            }
+        // === TASK LOADING ===
+async function loadTasks() {
+    const select = document.getElementById('taskId');
+    
+    try {
+        // Show loading state
+        select.innerHTML = '<option value="">Loading tasks... 🔄</option>';
+        
+        // Call your Apps Script
+        const response = await fetch(`${SCRIPT_URL}?action=getTasks`, {
+            mode: 'cors',
+            cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
         }
+        
+        const tasks = await response.json();
+        
+        // Debug log (open browser console to see this)
+        console.log('Tasks loaded:', tasks);
+        
+        // Clear and populate dropdown
+        select.innerHTML = '<option value="" disabled selected>Select a task...</option>';
+        
+        if (!tasks || tasks.length === 0) {
+            select.innerHTML += '<option value="">No active tasks found</option>';
+            return;
+        }
+        
+        // Add each task to dropdown
+        tasks.forEach(task => {
+            const option = document.createElement('option');
+            option.value = task.id;
+            option.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'No date'})`;
+            select.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        select.innerHTML = '<option value="">Error loading tasks</option>';
+        
+        // Show error in banner
+        const errorBanner = document.getElementById('error-banner');
+        errorBanner.textContent = 'Failed to load tasks. Check console for details.';
+        errorBanner.style.display = 'block';
+    }
+}
 
         // === EVENT LISTENERS ===
         document.getElementById('new-form').addEventListener('submit', e => handleSubmit('new-form', e));
