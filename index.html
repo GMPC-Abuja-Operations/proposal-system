@@ -179,7 +179,16 @@
                         <option value="staff2">Ms. Joan Alaribe</option>
                         <option value="staff3">Mr. Emmanuel Agama</option>
                         <option value="staff4">Mr. Matthew Nnaji</option>
-                        <option value="staff5">Staff Member 5 (Not Active)</option>
+                        <option value="staff5">Mr. Peter Esiole</option>
+                    </select>
+                    <label for="followupPerson">Follow-up Person:*</label>
+                    <select id="followupPerson" name="followupPerson" required>
+                        <option value="">Select...</option>
+                        <option value="staff1">Mr. Immanuelson Sam</option>
+                        <option value="staff2">Ms. Joan Alaribe</option>
+                        <option value="staff3">Mr. Emmanuel Agama</option>
+                        <option value="staff4">Mr. Matthew Nnaji</option>
+                        <option value="staff5">Mr. Peter Esiole</option>
                     </select>
                     <label for="dueDate">Due Date:*</label>
                     <input type="date" id="dueDate" name="dueDate" required>
@@ -232,10 +241,7 @@
                             <option value="other">Other</option>
                         </select>
                     </div>
-                    <div id="followup-fields" class="conditional">
-                        <label for="nextFollowupDate">Next Follow-up Date:*</label>
-                        <input type="date" id="nextFollowupDate" name="nextFollowupDate">
-                    </div>
+                    
                     <button type="submit">Update Task</button>
                 </form>
             </div>
