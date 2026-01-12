@@ -261,13 +261,19 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Rg74BS4qZjik4LsQuH9KliiYiSUKhHlfY_bntpb5UNK0-D-SgWeJenU88BqZWijw/exec';
 
         // === INITIALIZATION ===
-        document.addEventListener('DOMContentLoaded', () => {
-            // Set minimum dates
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM fully loaded');
+            
+            // Set minimum date for due date
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dueDate').min = today;
-            document.getElementById('nextFollowupDate').min = today;
-
-            // Load tasks for update form
+            const dueDateInput = document.getElementById('dueDate');
+            if (dueDateInput) {
+                dueDateInput.min = today;
+                console.log('Due date min set to:', today);
+            }
+            
+            // Load tasks
+            console.log('🔄 Loading tasks...');
             loadTasks();
         });
 
@@ -390,53 +396,70 @@
         }
 
         // === TASK LOADING ===
-        // === TASK LOADING ===
 async function loadTasks() {
     const select = document.getElementById('taskId');
+    if (!select) {
+        console.error('taskId select element not found!');
+        return;
+    }
     
     try {
-        // Show loading state
+        console.log('🚀 Loading tasks from:', SCRIPT_URL);
         select.innerHTML = '<option value="">Loading tasks... 🔄</option>';
         
-        // Call your Apps Script
-        const response = await fetch(`${SCRIPT_URL}?action=getTasks`, {
+        // Add timestamp to prevent caching
+        const response = await fetch(`${SCRIPT_URL}?action=getTasks&t=${Date.now()}`, {
             mode: 'cors',
-            cache: 'no-cache'
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
         
+        console.log('📡 Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const tasks = await response.json();
+        console.log('✅ Tasks received:', tasks);
+        console.log('Number of tasks:', tasks?.length || 0);
         
-        // Debug log (open browser console to see this)
-        console.log('Tasks loaded:', tasks);
-        
-        // Clear and populate dropdown
+        // Clear dropdown
         select.innerHTML = '<option value="" disabled selected>Select a task...</option>';
         
-        if (!tasks || tasks.length === 0) {
+        if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+            console.log('⚠️ No active tasks found');
             select.innerHTML += '<option value="">No active tasks found</option>';
             return;
         }
         
-        // Add each task to dropdown
+        // Populate dropdown
         tasks.forEach(task => {
             const option = document.createElement('option');
-            option.value = task.id;
-            option.textContent = `${task.clientName} - ${task.status} (Due: ${task.dueDate || 'No date'})`;
+            option.value = task.id || '';
+            option.textContent = `${task.clientName || 'Unknown'} - ${task.status || 'No status'} (Due: ${task.dueDate || 'No date'})`;
             select.appendChild(option);
         });
         
-    } catch (error) {
-        console.error('Error loading tasks:', error);
-        select.innerHTML = '<option value="">Error loading tasks</option>';
+        console.log(`🎉 Successfully loaded ${tasks.length} tasks`);
         
-        // Show error in banner
+    } catch (error) {
+        console.error('❌ Error loading tasks:', error);
+        console.error('Error details:', error.message);
+        
+        const select = document.getElementById('taskId');
+        if (select) {
+            select.innerHTML = '<option value="">Error loading tasks. Check console.</option>';
+        }
+        
+        // Show error banner
         const errorBanner = document.getElementById('error-banner');
-        errorBanner.textContent = 'Failed to load tasks. Check console for details.';
-        errorBanner.style.display = 'block';
+        if (errorBanner) {
+            errorBanner.textContent = `Failed to load tasks: ${error.message}`;
+            errorBanner.style.display = 'block';
+        }
     }
 }
 
