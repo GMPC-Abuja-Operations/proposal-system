@@ -200,22 +200,67 @@
             <div id="update-tab" class="tab-panel">
                 <form id="update-form">
                     <input type="hidden" name="formType" value="updateTask">
+
+                    <!-- Add this ABOVE the task select dropdown -->
+                    <button type="button" onclick="togglePartnerSection()" 
+                            style="background: #f8f9fa; border: 1px solid #dee2e6; color: #6c757d; 
+                                   padding: 8px 16px; border-radius: 4px; margin-bottom: 15px; 
+                                   cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                      <span>🔓</span> Close Task (Partner)
+                    </button>
+                    
                     <label for="taskId">Select Task:*</label>
                     <select id="taskId" name="taskId" required>
                         <option value="" disabled selected>Loading tasks…</option>
                     </select>
                     <label for="status">Status:*</label>
                     <select id="status" name="status" required>
-                        <option value="">Select...</option>
-                        <option value="drafting">Drafting</option>
-                        <option value="review">Review</option>
-                        <option value="sent">Sent</option>
-                        <option value="followup">Follow-up</option>
-                        <option value="won">Won</option>
-                        <option value="lost">Lost</option>
-                        <option value="noresponse">No Response</option>
+                      <option value="">Select status...</option>
+                      <option value="ready_for_review">✅ Ready for Review</option>
+                      <option value="sent_to_client">📤 Sent to Client</option>
                     </select>
 
+                    <!-- ADD Partner Close Section (hidden by default) -->
+                    <div id="partner-section" style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #dee2e6; display: none;">
+                      <h3 style="color: #d32f2f; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>🔒</span> Partner Actions
+                      </h3>
+                      
+                      <p style="color: #6c757d; margin-bottom: 15px;">
+                        Close this task.
+                      </p>
+                      
+                      <div style="background: white; padding: 20px; border-radius: 6px; border: 1px solid #e0e0e0;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Final Outcome:*</label>
+                        <select id="finalStatus" name="finalStatus" style="width: 100%; padding: 10px; margin-bottom: 20px;" onchange="toggleCloseFields()">
+                          <option value="">Select outcome...</option>
+                          <option value="won">🎉 Won</option>
+                          <option value="lost">📉 Lost</option>
+                          <option value="noresponse">⏳ No Response</option>
+                        </select>
+                        
+                        <div id="close-won-fields" style="display: none; margin-bottom: 15px;">
+                          <label style="font-weight: 600; display: block; margin-bottom: 8px;">₦ Actual Value (if Won):*</label>
+                          <input type="number" id="actualValue" name="actualValue" min="0" step="1000" style="width: 100%; padding: 10px;">
+                        </div>
+                        
+                        <div id="close-lost-fields" style="display: none; margin-bottom: 15px;">
+                          <label style="font-weight: 600; display: block; margin-bottom: 8px;">Loss Reason:*</label>
+                          <select id="lossReason" name="lossReason" style="width: 100%; padding: 10px;">
+                            <option value="">Select reason...</option>
+                            <option value="price">Price</option>
+                            <option value="competitor">Competitor</option>
+                            <option value="timing">Timing</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        
+                        <button type="button" onclick="submitCloseTask()" style="background: #d32f2f; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                          Confirm Close Task
+                        </button>
+                      </div>
+                    </div>
+                    
                     <hr>
 
                     <h3>📎 Upload Documents</h3>
@@ -227,24 +272,6 @@
 
                     <textarea name="notes" rows="3" placeholder="Any additional notes or comments..."></textarea>
 
-                    <div id="won-fields" class="conditional">
-                        <label for="actualValue">₦ Actual Value (if Won):*</label>
-                        <input type="number" id="actualValue" name="actualValue" min="0" step="1000">
-                    </div>
-                    <div id="lost-fields" class="conditional">
-                        <label for="lossReason">Loss Reason:*</label>
-                        <select id="lossReason" name="lossReason">
-                            <option value="">Select...</option>
-                            <option value="price">Price</option>
-                            <option value="competitor">Competitor</option>
-                            <option value="timing">Timing</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div id="followup-fields" class="conditional">
-                        <label for="nextFollowupDate">Next Follow-up Date:*</label>
-                        <input type="date" id="nextFollowupDate" name="nextFollowupDate">
-                    </div>
                     <button type="submit">Update Task</button>
                 </form>
             </div>
@@ -443,6 +470,124 @@ async function loadTasks() {
         // === EVENT LISTENERS ===
         document.getElementById('new-form').addEventListener('submit', e => handleSubmit('new-form', e));
         document.getElementById('update-form').addEventListener('submit', e => handleSubmit('update-form', e));
+
+        // Toggle partner section visibility
+        function togglePartnerSection() {
+          const section = document.getElementById('partner-section');
+          const isVisible = section.style.display !== 'none';
+          section.style.display = isVisible ? 'none' : 'block';
+        }
+        
+        // Show/hide close fields based on selection
+        function toggleCloseFields() {
+          const status = document.getElementById('finalStatus').value;
+          
+          // Hide all
+          document.getElementById('close-won-fields').style.display = 'none';
+          document.getElementById('close-lost-fields').style.display = 'none';
+          
+          // Show relevant fields
+          if (status === 'won') {
+            document.getElementById('close-won-fields').style.display = 'block';
+          } else if (status === 'lost') {
+            document.getElementById('close-lost-fields').style.display = 'block';
+          }
+        }
+        
+        // Submit close task
+        async function submitCloseTask() {
+          const taskSelect = document.getElementById('taskId');
+          const finalStatus = document.getElementById('finalStatus').value;
+          
+          if (!taskSelect.value) {
+            alert('Please select a task first');
+            taskSelect.focus();
+            return;
+          }
+          
+          if (!finalStatus) {
+            alert('Please select an outcome (Won/Lost/No Response)');
+            document.getElementById('finalStatus').focus();
+            return;
+          }
+          
+          // Validate won/lost fields
+          if (finalStatus === 'won') {
+            const actualValue = document.getElementById('actualValue').value;
+            if (!actualValue || Number(actualValue) <= 0) {
+              alert('Please enter a valid actual value for Won tasks');
+              return;
+            }
+          }
+          
+          if (finalStatus === 'lost') {
+            const lossReason = document.getElementById('lossReason').value;
+            if (!lossReason) {
+              alert('Please select a loss reason');
+              return;
+            }
+          }
+          
+          // Prepare data
+          const formData = new FormData();
+          formData.append('formType', 'closeTask');
+          formData.append('taskId', taskSelect.value);
+          formData.append('finalStatus', finalStatus);
+          
+          if (finalStatus === 'won') {
+            formData.append('actualValue', document.getElementById('actualValue').value);
+          }
+          
+          if (finalStatus === 'lost') {
+            formData.append('lossReason', document.getElementById('lossReason').value);
+          }
+          
+          // Submit
+          const loading = document.getElementById('loading');
+          const successBanner = document.getElementById('success-banner');
+          const errorBanner = document.getElementById('error-banner');
+          
+          loading.style.display = 'block';
+          successBanner.style.display = 'none';
+          errorBanner.style.display = 'none';
+          
+          try {
+            const response = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              body: formData,
+              mode: 'cors'
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+              successBanner.textContent = result.message;
+              successBanner.style.display = 'block';
+              
+              // Reload tasks and reset form
+              await loadTasks();
+              document.getElementById('finalStatus').value = '';
+              document.getElementById('actualValue').value = '';
+              document.getElementById('lossReason').value = '';
+              document.getElementById('close-won-fields').style.display = 'none';
+              document.getElementById('close-lost-fields').style.display = 'none';
+              
+              // Hide partner section after successful close
+              document.getElementById('partner-section').style.display = 'none';
+              
+              setTimeout(() => {
+                successBanner.style.display = 'none';
+              }, 6000);
+            } else {
+              throw new Error(result.message || 'Failed to close task');
+            }
+          } catch (error) {
+            errorBanner.textContent = `✗ ${error.message}`;
+            errorBanner.style.display = 'block';
+          } finally {
+            loading.style.display = 'none';
+          }
+        }
     </script>
 </body>
 </html>
