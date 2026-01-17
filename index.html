@@ -213,12 +213,6 @@
                     <select id="taskId" name="taskId" required>
                         <option value="" disabled selected>Loading tasks…</option>
                     </select>
-                    <label for="status">Status:*</label>
-                    <select id="status" name="status" required>
-                      <option value="">Select status...</option>
-                      <option value="ready_for_review">✅ Ready for Review</option>
-                      <option value="sent_to_client">📤 Sent to Client</option>
-                    </select>
 
                     <!-- ADD Partner Close Section (hidden by default) -->
                     <div id="partner-section" style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #dee2e6; display: none;">
@@ -260,6 +254,13 @@
                         </button>
                       </div>
                     </div>
+                    
+                    <label for="status">Status:*</label>
+                    <select id="status" name="status" required>
+                      <option value="">Select status...</option>
+                      <option value="ready_for_review">✅ Ready for Review</option>
+                      <option value="sent_to_client">📤 Sent to Client</option>
+                    </select>
                     
                     <hr>
 
@@ -325,30 +326,6 @@
           console.log('Opening form for task:', taskId);
           window.open(FORM_URL, '_blank');
         }
-
-        // === CONDITIONAL FIELDS ===
-        document.getElementById('status').addEventListener('change', function() {
-            const status = this.value;
-            const fields = {
-                won: document.getElementById('won-fields'),
-                lost: document.getElementById('lost-fields'),
-                followup: document.getElementById('followup-fields')
-            };
-
-            Object.values(fields).forEach(field => field.classList.remove('visible'));
-
-            document.querySelectorAll('.conditional input, .conditional select').forEach(input => {
-                input.required = false;
-            });
-
-            if (status in fields) {
-                const field = fields[status];
-                field.classList.add('visible');
-                field.querySelectorAll('input, select').forEach(input => {
-                    input.required = true;
-                });
-            }
-        });
 
         // === FORM SUBMISSION ===
         async function handleSubmit(formId, e) {
