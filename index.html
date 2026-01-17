@@ -499,10 +499,15 @@ async function loadTasks() {
           }
         }
         
-        // Submit close task
+        // Replace your submitCloseTask() function with this debug version:
         async function submitCloseTask() {
+          console.log('🔍 DEBUG submitCloseTask() called');
+          
           const taskSelect = document.getElementById('taskId');
           const finalStatus = document.getElementById('finalStatus').value;
+          
+          console.log('Task ID:', taskSelect.value);
+          console.log('Final Status:', finalStatus);
           
           if (!taskSelect.value) {
             alert('Please select a task first');
@@ -519,6 +524,7 @@ async function loadTasks() {
           // Validate won/lost fields
           if (finalStatus === 'won') {
             const actualValue = document.getElementById('actualValue').value;
+            console.log('Actual Value:', actualValue);
             if (!actualValue || Number(actualValue) <= 0) {
               alert('Please enter a valid actual value for Won tasks');
               return;
@@ -527,6 +533,7 @@ async function loadTasks() {
           
           if (finalStatus === 'lost') {
             const lossReason = document.getElementById('lossReason').value;
+            console.log('Loss Reason:', lossReason);
             if (!lossReason) {
               alert('Please select a loss reason');
               return;
@@ -539,6 +546,11 @@ async function loadTasks() {
           formData.append('taskId', taskSelect.value);
           formData.append('finalStatus', finalStatus);
           
+          console.log('FormData entries:');
+          for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+          }
+          
           if (finalStatus === 'won') {
             formData.append('actualValue', document.getElementById('actualValue').value);
           }
@@ -546,6 +558,14 @@ async function loadTasks() {
           if (finalStatus === 'lost') {
             formData.append('lossReason', document.getElementById('lossReason').value);
           }
+          
+          // Show all data being sent
+          console.log('Full data to send:');
+          const dataObj = {};
+          for (let [key, value] of formData.entries()) {
+            dataObj[key] = value;
+          }
+          console.log(JSON.stringify(dataObj, null, 2));
           
           // Submit
           const loading = document.getElementById('loading');
@@ -557,13 +577,19 @@ async function loadTasks() {
           errorBanner.style.display = 'none';
           
           try {
+            console.log('Sending to:', SCRIPT_URL);
+            
             const response = await fetch(SCRIPT_URL, {
               method: 'POST',
               body: formData,
               mode: 'cors'
             });
             
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
             const result = await response.json();
+            console.log('Server response:', result);
             
             if (result.status === 'success') {
               successBanner.textContent = result.message;
@@ -587,6 +613,7 @@ async function loadTasks() {
               throw new Error(result.message || 'Failed to close task');
             }
           } catch (error) {
+            console.error('Full error:', error);
             errorBanner.textContent = `✗ ${error.message}`;
             errorBanner.style.display = 'block';
           } finally {
