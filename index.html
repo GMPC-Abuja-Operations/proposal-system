@@ -170,8 +170,9 @@
                     </select>
                     <label for="description">Description:*</label>
                     <textarea id="description" name="description" required rows="4" placeholder="Brief overview of the opportunity..."></textarea>
-                    <label for="nairaEstimate">₦ Estimate:*</label>
-                    <input type="number" id="nairaEstimate" name="nairaEstimate" min="0" step="1000" required placeholder="e.g., 5000000">
+                    <label for="nairaEstimateDisplay">₦ Estimate:*</label>
+                    <input type="text" id="nairaEstimateDisplay" required placeholder="e.g., 5,000,000">
+                    <input type="hidden" id="nairaEstimate" name="nairaEstimate">
                     <label for="assignedStaff">Assigned Staff:*</label>
                     <select id="assignedStaff" name="assignedStaff" required>
                         <option value="">Select...</option>
@@ -363,33 +364,39 @@
             const loading = document.getElementById('loading');
             const successBanner = document.getElementById('success-banner');
             const errorBanner = document.getElementById('error-banner');
-
+        
+            // ⭐ RESET CLASSES FIRST
+            successBanner.className = 'banner success';
+            errorBanner.className = 'banner error';
+            
             successBanner.style.display = 'none';
             errorBanner.style.display = 'none';
             loading.style.display = 'block';
             submitBtn.disabled = true;
-
+        
             try {
                 const formData = new FormData(form);
-
+        
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: formData,
                     mode: 'cors'
                 });
-
+        
                 if (!response.ok) {
                     throw new Error(`Server responded with ${response.status}`);
                 }
-
+        
                 const result = await response.json();
-
+        
                 if (result.status === 'success') {
+                    // ⭐ ENSURE SUCCESS CLASS
+                    successBanner.className = 'banner success';
                     successBanner.textContent = result.message || '✓ Success!';
                     successBanner.style.display = 'block';
-
+        
                     form.reset();
-
+        
                     document.querySelectorAll('.conditional').forEach(field => {
                         field.classList.remove('visible');
                         field.querySelectorAll('input, select').forEach(input => {
@@ -399,19 +406,21 @@
                             if (input.tagName === 'SELECT') input.selectedIndex = 0;
                         });
                     });
-
+        
                     if (formId === 'update-form') {
                         await loadTasks();
                     }
-
+        
                     setTimeout(() => {
                         successBanner.style.display = 'none';
                     }, 6000);
                 } else {
                     throw new Error(result.message || 'Submission failed');
                 }
-
+        
             } catch (error) {
+                // ⭐ ENSURE ERROR CLASS
+                errorBanner.className = 'banner error';
                 errorBanner.textContent = `✗ ${error.message}`;
                 errorBanner.style.display = 'block';
                 console.error('Submission error:', error);
@@ -620,6 +629,57 @@ async function loadTasks() {
             loading.style.display = 'none';
           }
         }
+
+        // === NAIRA ESTIMATE FORMATTING ===
+        document.addEventListener('DOMContentLoaded', function() {
+          const displayField = document.getElementById('nairaEstimateDisplay');
+          const hiddenField = document.getElementById('nairaEstimate');
+          
+          if (displayField && hiddenField) {
+            // Format as user types
+            displayField.addEventListener('input', function(e) {
+              // Remove all non-digits (commas, spaces, etc.)
+              let rawValue = this.value.replace(/[^\d]/g, '');
+              
+              // Store raw number in hidden field (for form submission)
+              hiddenField.value = rawValue;
+              
+              // Format with commas for display
+              if (rawValue) {
+                const numValue = parseInt(rawValue);
+                if (!isNaN(numValue)) {
+                  this.value = new Intl.NumberFormat('en-NG').format(numValue);
+                }
+              } else {
+                this.value = '';
+              }
+            });
+            
+            // Also handle paste
+            displayField.addEventListener('paste', function(e) {
+              setTimeout(() => {
+                let rawValue = this.value.replace(/[^\d]/g, '');
+                hiddenField.value = rawValue;
+                if (rawValue) {
+                  const numValue = parseInt(rawValue);
+                  if (!isNaN(numValue)) {
+                    this.value = new Intl.NumberFormat('en-NG').format(numValue);
+                  }
+                }
+              }, 10);
+            });
+            
+            // Validate before form submission
+            document.getElementById('new-form').addEventListener('submit', function(e) {
+              if (!hiddenField.value || hiddenField.value === '0' || isNaN(hiddenField.value)) {
+                e.preventDefault();
+                alert('Please enter a valid ₦ estimate');
+                displayField.focus();
+                displayField.select();
+              }
+            });
+          }
+        });
         
     </script>
 </body>
