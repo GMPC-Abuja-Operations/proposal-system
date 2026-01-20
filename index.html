@@ -332,30 +332,6 @@
           window.open(FORM_URL, '_blank');
         }
 
-        // === CONDITIONAL FIELDS ===
-        document.getElementById('status').addEventListener('change', function() {
-            const status = this.value;
-            const fields = {
-                won: document.getElementById('won-fields'),
-                lost: document.getElementById('lost-fields'),
-                followup: document.getElementById('followup-fields')
-            };
-
-            Object.values(fields).forEach(field => field.classList.remove('visible'));
-
-            document.querySelectorAll('.conditional input, .conditional select').forEach(input => {
-                input.required = false;
-            });
-
-            if (status in fields) {
-                const field = fields[status];
-                field.classList.add('visible');
-                field.querySelectorAll('input, select').forEach(input => {
-                    input.required = true;
-                });
-            }
-        });
-
         // === FORM SUBMISSION ===
         async function handleSubmit(formId, e) {
             e.preventDefault();
@@ -398,13 +374,19 @@
                     form.reset();
         
                     document.querySelectorAll('.conditional').forEach(field => {
-                        field.classList.remove('visible');
-                        field.querySelectorAll('input, select').forEach(input => {
-                            input.required = false;
-                            if (input.type === 'number') input.value = '';
-                            if (input.type === 'date') input.value = '';
-                            if (input.tagName === 'SELECT') input.selectedIndex = 0;
-                        });
+                        if (field && field.classList) { // ⭐ ADD NULL CHECK
+                            field.classList.remove('visible');
+                            if (field.querySelectorAll) { // ⭐ ADD SAFETY CHECK
+                                field.querySelectorAll('input, select').forEach(input => {
+                                    if (input) { // ⭐ ADD NULL CHECK
+                                        input.required = false;
+                                        if (input.type === 'number') input.value = '';
+                                        if (input.type === 'date') input.value = '';
+                                        if (input.tagName === 'SELECT') input.selectedIndex = 0;
+                                    }
+                                });
+                            }
+                        }
                     });
         
                     if (formId === 'update-form') {
